@@ -1,0 +1,43 @@
+# 目标产品与竞品清单
+# 对应规格 §5（数据采集）、§7（products 表）
+# 与 MySQL products 表保持一致：SELECT * FROM products;
+#
+# 更新记录：
+#   2026-11-02 原规格示例 SKU 100012043978 实测是飞天茅台白酒，非手机，已弃用。
+#   2026-11-02 第一轮候选 100433292168（Redmi K100）为未开售新机（采购中，
+#             预计 2026-11-13 到货），页面显示暂无评价，无法满足 T2 的 ≥500 条，已弃用。
+#   2026-11-02 选定 100215674663（目标）+ 100300314335 华为 nova 16 SE（竞品）。
+#   2026-11-04 竞品改为 100224796932 华为 nova 14。
+#             原因：交付的补充数据里华为是 nova 14，不是 nova 16 SE；
+#             只有换来这台的 500 好评 + 200 差评，两边样本结构才对称
+#             （都是 500 好 + 200 差），竞品差距分析才有可比性。
+#             详见 docs/实现偏差记录.md D11。
+#             nova 16 SE（100300314335）的 500 条数据已归档到
+#             data/incoming/2026-11-04/_retired-100300314335-nova16se.jsonl
+
+products:
+  - product_id: "100215674663"
+    brand: "小米"
+    model: "REDMI K90"
+    category: "手机"
+    is_target: true          # 本方产品，评价 50万+，本轮 500 好评 + 200 差评
+    review_total: 500000
+
+  - product_id: "100224796932"
+    brand: "华为"
+    model: "nova 14"
+    category: "手机"
+    is_target: false         # 竞品，本轮 500 好评 + 200 差评
+    review_total: 20000
+
+# 采集参数
+# 京东接口不稳定（规格 §14 风险 1），所以降频 + 小批量 + 重试
+crawl:
+  min_reviews_per_product: 500   # 验收 T2 要求：每产品 ≥500 条
+  page_size: 10                  # 京东固定每页 10 条
+  max_pages: 100                 # sortType=5 时接口返回 maxPage=100
+  request_interval_sec: 3.0      # 请求间隔；低于 3 秒很容易触发「活动太火爆」
+  retry: 4                       # 限流时退避重试次数（间隔 5s/10s/15s/20s）
+  retry_backoff_sec: 5
+  sort_type: 5                   # 5 = 推荐排序（maxPage=100）；6 = 时间排序但 maxPage 只有 2
+  save_raw_jsonl: true           # 本地留底，便于失败重传（规格 §14）

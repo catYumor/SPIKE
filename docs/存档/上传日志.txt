@@ -1,0 +1,14 @@
+=== 上传评论到 HDFS ===
+  本地: /mnt/d/workspace/SPIKE/data/raw
+  远端: /spike/raw/reviews
+
+  100215674663: 500 行 / 146729 字节
+    -> /spike/raw/reviews/product_id=100215674663/reviews.jsonl
+  100300314335: 500 行 / 147927 字节
+    -> /spike/raw/reviews/product_id=100300314335/reviews.jsonl
+
+  上传完成，共 1000 行
+
+=== HDFS 现状 ===
+  146729 字节  /spike/raw/reviews/product_id=100215674663/reviews.jsonl
+  147927 字节  /spike/raw/reviews/product_id=100300314335/reviews.jsonl

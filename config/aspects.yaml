@@ -1,0 +1,111 @@
+# 属性字典
+# 对应规格 §9（算法与属性字典规范）、§7（aspect_dictionary 表）
+# 与 MySQL 种子数据一致：
+#   SELECT aspect_name, synonyms, category FROM aspect_dictionary;
+#
+# 用途：ABSA 抽取时，评论中出现 synonyms 里任一词 -> 归到该 aspect_name
+
+aspects:
+  - aspect_name: 电池续航
+    synonyms: [电池, 续航, 电量, 待机, 充电]
+    category: 手机
+
+  - aspect_name: 影像拍照
+    synonyms: [拍照, 相机, 像素, 成像, 夜景]
+    category: 手机
+
+  - aspect_name: 屏幕显示
+    synonyms: [屏幕, 显示, 刷新率, 亮度]
+    category: 手机
+
+  - aspect_name: 做工质感
+    synonyms: [做工, 质感, 手感, 外壳]
+    category: 手机
+
+  - aspect_name: 物流配送
+    synonyms: [物流, 快递, 配送, 发货]
+    category: 手机
+
+  - aspect_name: 客服服务
+    synonyms: [客服, 售后, 服务]
+    category: 手机
+
+  - aspect_name: 性价比
+    synonyms: [价格, 性价比, 贵, 便宜]
+    category: 手机
+
+# 情感极性规则（rule_fallback.py 使用）
+# 2026-11-02 扩充：原词典只有 10/10 个词，「表现不错」「给力」「推荐」等
+# 常见正面表达都识别不到，导致正面评论被误判为中性。补到覆盖日常电商用语。
+# 注意：词表里的词会做子串匹配，长词和短词同时命中会计两次（分数叠加，可接受）。
+sentiment:
+  positive_words:
+    - 好
+    - 棒
+    - 不错
+    - 清晰
+    - 快
+    - 满意
+    - 喜欢
+    - 流畅
+    - 耐用
+    - 划算
+    - 细腻
+    - 给力
+    - 推荐
+    - 惊喜
+    - 完美
+    - 优秀
+    - 精致
+    - 舒服
+    - 稳定
+    - 超值
+    - 值得
+    - 漂亮
+    - 出色
+    - 省电
+    - 轻薄
+    - 顺滑
+    - 灵敏
+    - 实惠
+    - 好评
+  negative_words:
+    - 差
+    - 烂
+    - 慢
+    - 卡
+    - 失望
+    - 退货
+    - 发热
+    - 糟糕
+    - 一般
+    - 后悔
+    - 垃圾
+    - 坑
+    - 模糊
+    - 掉电
+    - 卡顿
+    - 迟钝
+    - 贵
+    - 吵
+    - 虚假
+    - 翻车
+    - 缩水
+    - 减配
+    - 费电
+    - 发烫
+    - 死机
+    - 黑屏
+    - 断裂
+    - 鸡肋
+    - 货不对板
+  negation_words: [不, 没, 无, 别, 莫, 未]
+  degree_words:
+    很: 1.5
+    非常: 2.0
+    特别: 2.0
+    太: 1.8
+    超: 1.8
+    有点: 0.5
+    稍微: 0.5
+    略: 0.5

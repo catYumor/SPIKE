@@ -1,0 +1,45 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ---- Spark / Hadoop ----
+spark-warehouse/
+metastore_db/
+derby.log
+*.parquet
+logs/
+*.log
+
+# ---- Node / 前端 ----
+node_modules/
+dist/
+dist-static/
+.vite/
+*.local
+
+# ---- 生成物（都可用 scripts/ 下的脚本重新生成）----
+打包输出/
+*.zip
+data/raw/*.bak-*
+data/raw/.bak-mock/
+data/incoming/**/*.mock-bak-*
+
+# ---- 数据中间层 ----
+data/staging/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- 凭证（切勿提交）----
+cookies*.txt
+*.cookie
+.env
+.secrets/

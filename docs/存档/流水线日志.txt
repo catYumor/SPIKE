@@ -1,0 +1,190 @@
+=== SPIKE 流水线启动 ===
+  项目:     /mnt/d/workspace/SPIKE
+  venv:     /home/hadoop/spike-venv
+  HDFS:     hdfs://localhost:9000
+
+
+================================================================
+  步骤 1/4 — clean
+  清洗：raw JSONL -> staging/cleaned (Parquet)
+================================================================
+your 131072x1 screen size is bogus. expect trouble
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/11/04 13:12:11 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 26:>                                                         (0 + 2) / 2]                                                                                ==================================================================
+Job 01 清洗
+==================================================================
+  输入: hdfs://localhost:9000/spike/raw/reviews/*/*.jsonl
+  输出: hdfs://localhost:9000/spike/staging/cleaned
+
+  读入 1400 行
+  过滤空/短内容后 1397 行（丢弃 3）
+  过滤非法星级后 1397 行（丢弃 0）
+  create_time 解析成功 1397 行
+  按 review_id 去重后 1397 行（丢弃 0）
+
+  已写入 hdfs://localhost:9000/spike/staging/cleaned（product_id=* 分区）
+
+  按产品统计:
+    100215674663  小米 REDMI K90（目标）  697 条  均分 3.84
+      时间 2025-10-25 11:12:54 ~ 2026-11-03 10:15:10
+    100224796932  华为 nova 14（竞品）  700 条  均分 3.86
+      时间 2024-03-04 12:10:45 ~ 2026-10-23 11:11:22
+
+  读回校验: 1397 行，10 列 -> ['review_id', 'brand', 'model', 'is_target', 'score', 'content', 'create_time', 'source', 'crawl_time', 'product_id']
+
+Job 01 完成
+
+  [ OK ] 步骤 1 完成，耗时 12s
+
+================================================================
+  步骤 2/4 — absa
+  ABSA 抽取：cleaned -> staging/aspects
+================================================================
+your 131072x1 screen size is bogus. expect trouble
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/11/04 13:12:23 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 4:>                                                          (0 + 2) / 2]                                                                                ==================================================================
+Job 02 ABSA 抽取
+==================================================================
+  输入: hdfs://localhost:9000/spike/staging/cleaned
+  输出: hdfs://localhost:9000/spike/staging/aspects
+  抽取路径: rule  （未设置 SPIKE_ABSA_MODEL）
+
+  待处理评论 1397 条
+  抽出属性 2314 条
+  已写入 hdfs://localhost:9000/spike/staging/aspects（product_id=* 分区）
+
+  情感分布:
+    positive   1806 条
+    neutral     342 条
+    negative    166 条
+
+  属性 Top 10:
+    影像拍照         503 条  正面率 0.815  置信 0.662
+    电池续航         494 条  正面率 0.763  置信 0.652
+    做工质感         412 条  正面率 0.883  置信 0.682
+    屏幕显示         360 条  正面率 0.781  置信 0.647
+    性价比          313 条  正面率 0.751  置信 0.674
+    客服服务         124 条  正面率 0.29  置信 0.575
+    物流配送         108 条  正面率 0.954  置信 0.682
+
+  覆盖率: 1082/1397 条评论至少命中 1 个属性 (77.5%)
+
+  抽样检查（验收 T4 格式预演）:
+    [影像拍照/positive] 拍照效果不错
+    [做工质感/positive] 手机的手感很舒服
+    [电池续航/positive] 手机很好用，以前用的nova现在再一次选择nova，系统很流畅，拍照很好看，拿在手里合适待机时间长
+
+  读回校验: 2314 行，列 -> ['review_id', 'aspect_name', 'sentiment', 'confidence', 'evidence_text', 'create_time', 'product_id']
+
+Job 02 完成
+
+  [ OK ] 步骤 2 完成，耗时 12s
+
+================================================================
+  步骤 3/4 — aggregate
+  归并聚合：aspects -> output/aggregation + MySQL
+================================================================
+your 131072x1 screen size is bogus. expect trouble
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/11/04 13:12:35 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 8:>                                                          (0 + 2) / 2]                                                                                ==================================================================
+Job 03 属性归并与聚合
+==================================================================
+  输入: hdfs://localhost:9000/spike/staging/aspects
+  输出: hdfs://localhost:9000/spike/output/aggregation + MySQL(review_aspects, aspect_aggregation)
+  MySQL: 127.0.0.1:3307/spike
+
+  同义词表: 35 条映射
+  读入属性 2314 条，评论 1397 条
+
+  未命中标准属性的原词 0 个（待人工维护）: []
+  去重后明细 2314 条
+
+  已写入 hdfs://localhost:9000/spike/output/aggregation
+
+  写入 MySQL...
+    review_aspects: 2314 行
+    aspect_aggregation: 14 行
+
+  聚合结果:
+    100215674663  电池续航     总 316  正 240  负  20  中  56  正面率 0.7595
+    100215674663  屏幕显示     总 230  正 179  负  17  中  34  正面率 0.7783
+    100215674663  做工质感     总 225  正 193  负   8  中  24  正面率 0.8578
+    100215674663  影像拍照     总 224  正 172  负  17  中  35  正面率 0.7679
+    100215674663  性价比      总 195  正 147  负  13  中  35  正面率 0.7538
+    100215674663  物流配送     总  69  正  66  负   0  中   3  正面率 0.9565
+    100215674663  客服服务     总  57  正  17  负  19  中  21  正面率 0.2982
+    100224796932  影像拍照     总 279  正 238  负  12  中  29  正面率 0.853
+    100224796932  做工质感     总 187  正 171  负   7  中   9  正面率 0.9144
+    100224796932  电池续航     总 178  正 137  负   9  中  32  正面率 0.7697
+    100224796932  屏幕显示     总 130  正 102  负   9  中  19  正面率 0.7846
+    100224796932  性价比      总 118  正  88  负  11  中  19  正面率 0.7458
+    100224796932  客服服务     总  67  正  19  负  24  中  24  正面率 0.2836
+    100224796932  物流配送     总  39  正  37  负   0  中   2  正面率 0.9487
+
+  校验: review_aspects=2314 行, aspect_aggregation=14 行, 其中 total_count>=5 的 14 行
+
+Job 03 完成
+
+  [ OK ] 步骤 3 完成，耗时 13s
+
+================================================================
+  步骤 4/4 — gap
+  优先级与竞品差距：aggregation -> MySQL
+================================================================
+your 131072x1 screen size is bogus. expect trouble
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/11/04 13:12:48 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 2:>                                                        (0 + 16) / 16][Stage 2:>                (0 + 16) / 16][Stage 3:>                  (0 + 0) / 2][Stage 3:>                                                          (0 + 2) / 2]                                                                                [Stage 18:========================>                                (7 + 9) / 16]                                                                                ==================================================================
+Job 04 痛点优先级与竞品差距
+==================================================================
+  读入 aspect_aggregation 14 行，产品 2 个
+  目标产品: 100215674663 小米 REDMI K90
+  竞品:     100224796932 华为 nova 14
+
+  ---- 属性优先级 ----
+    100215674663  电池续航     advantage Kano=attractive      分=4.8     severity=0.6 负面数=20
+    100215674663  屏幕显示     advantage Kano=attractive      分=4.8     severity=0.706 负面数=17
+    100215674663  客服服务     painpoint Kano=indifferent     分=3.8     severity=1.0 负面数=19
+    100215674663  影像拍照     advantage Kano=attractive      分=3.6     severity=0.529 负面数=17
+    100215674663  性价比      advantage Kano=attractive      分=3.0     severity=0.577 负面数=13
+    100215674663  做工质感     advantage Kano=attractive      分=0.4     severity=0.125 负面数=8
+    100215674663  物流配送     advantage Kano=attractive      分=0.0     severity=0.0 负面数=0
+    100224796932  客服服务     painpoint Kano=indifferent     分=4.6     severity=0.958 负面数=24
+    100224796932  屏幕显示     advantage Kano=attractive      分=2.8     severity=0.778 负面数=9
+    100224796932  影像拍照     advantage Kano=attractive      分=1.6     severity=0.333 负面数=12
+    100224796932  电池续航     advantage Kano=attractive      分=1.6     severity=0.444 负面数=9
+    100224796932  性价比      neutral   Kano=indifferent     分=1.2     severity=0.545 负面数=11
+    100224796932  做工质感     advantage Kano=attractive      分=0.0     severity=0.0 负面数=7
+    100224796932  物流配送     advantage Kano=attractive      分=0.0     severity=0.0 负面数=0
+
+  ---- 竞品差距（7 组属性）----
+    客服服务     目标 0.30 vs 竞品 0.28  差 +0.01 ⬆
+    性价比      目标 0.75 vs 竞品 0.75  差 +0.01 ⬆
+    物流配送     目标 0.96 vs 竞品 0.95  差 +0.01 ⬆
+    屏幕显示     目标 0.78 vs 竞品 0.78  差 -0.01 ⬇
+    电池续航     目标 0.76 vs 竞品 0.77  差 -0.01 ⬇
+    做工质感     目标 0.86 vs 竞品 0.91  差 -0.06 ⬇
+    影像拍照     目标 0.77 vs 竞品 0.85  差 -0.09 ⬇
+
+  写入 MySQL...
+    aspect_priority: 14 行
+    competitive_gap: 7 行
+
+  校验: 竞品差距覆盖共同属性 7 个（T7 要求 >= 5）
+        标签分布 {'advantage': 11, 'painpoint': 2, 'neutral': 1}
+        Kano 分布 {'attractive': 11, 'indifferent': 3}
+
+Job 04 完成
+
+  [ OK ] 步骤 4 完成，耗时 12s
+
+================================================================
+  流水线结束：执行 4 步，跳过 0 步，失败 0 步，总耗时 49s
+================================================================
